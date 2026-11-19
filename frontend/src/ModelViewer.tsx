@@ -37,6 +37,11 @@ export default function ModelViewer({ modelUrl }: Props) {
   const wallHeightRef = useRef<number>(2.6);
   const pendingWallRef = useRef<PendingWall>(null);
   const previewLineRef = useRef<THREE.Line | null>(null);
+  const dragStateRef = useRef<{
+    object: THREE.Object3D;
+    plane: THREE.Plane;
+    offset: THREE.Vector3;
+  } | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -242,6 +247,19 @@ export default function ModelViewer({ modelUrl }: Props) {
     };
 
     const handlePointerMove = (e: MouseEvent) => {
+      if (dragStateRef.current) {
+        setNdcFromEvent(e);
+        raycaster.setFromCamera(ndc, camera);
+        const pt = new THREE.Vector3();
+        const hitPlane = raycaster.ray.intersectPlane(dragStateRef.current.plane, pt);
+        if (hitPlane) {
+          const obj = dragStateRef.current.object;
+          obj.position.x = pt.x + dragStateRef.current.offset.x;
+          obj.position.z = pt.z + dragStateRef.current.offset.z;
+        }
+        return;
+      }
+
       if (!pendingWallRef.current) return;
       setNdcFromEvent(e);
       raycaster.setFromCamera(ndc, camera);
@@ -262,6 +280,39 @@ export default function ModelViewer({ modelUrl }: Props) {
       previewLineRef.current = line;
     };
 
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return; // chi chuot trai
+      if (menuOpenRef.current || pendingWallRef.current) return;
+
+      setNdcFromEvent(e);
+      raycaster.setFromCamera(ndc, camera);
+      const intersects = raycaster.intersectObject(userGroupRef.current, true);
+      if (intersects.length === 0) return;
+
+      const root = findUserAddedRoot(intersects[0].object);
+      if (!root) return;
+
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -root.position.y);
+      const pt = new THREE.Vector3();
+      if (!raycaster.ray.intersectPlane(plane, pt)) return;
+
+      dragStateRef.current = {
+        object: root,
+        plane,
+        offset: new THREE.Vector3(root.position.x - pt.x, 0, root.position.z - pt.z),
+      };
+      controls.enabled = false;
+      renderer.domElement.style.cursor = "grabbing";
+    };
+
+    const handlePointerUp = () => {
+      if (dragStateRef.current) {
+        dragStateRef.current = null;
+        controls.enabled = true;
+        renderer.domElement.style.cursor = "auto";
+      }
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         cancelPlacingWall();
@@ -272,6 +323,8 @@ export default function ModelViewer({ modelUrl }: Props) {
     renderer.domElement.addEventListener("contextmenu", handleContextMenu);
     renderer.domElement.addEventListener("click", handleClick);
     renderer.domElement.addEventListener("pointermove", handlePointerMove);
+    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("keydown", handleKeyDown);
 
     const handleResize = () => {
@@ -312,9 +365,11 @@ export default function ModelViewer({ modelUrl }: Props) {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("contextmenu", handleContextMenu);
       renderer.domElement.removeEventListener("click", handleClick);
       renderer.domElement.removeEventListener("pointermove", handlePointerMove);
+      renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       renderer.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
