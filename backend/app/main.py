@@ -9,8 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.mesh_builder import build_walls_mesh, export_glb
-from app.wall_extractor import extract_wall_mask, find_wall_contours
+import trimesh
+
+from app.mesh_builder import build_floors_mesh, build_walls_mesh, export_glb
+from app.wall_extractor import extract_wall_mask, find_room_polygons, find_wall_contours
 
 app = FastAPI(title="HouseIn - Floor Plan to 3D")
 
@@ -61,18 +63,28 @@ async def floorplan_to_3d(
         )
 
     try:
-        mesh = build_walls_mesh(contours, px_to_m=px_to_m, wall_height_m=wall_height_m)
+        walls_mesh = build_walls_mesh(contours, px_to_m=px_to_m, wall_height_m=wall_height_m)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+    room_polygons = find_room_polygons(wall_mask)
+    floors_mesh = build_floors_mesh(room_polygons, px_to_m=px_to_m)
+
+    final_mesh = (
+        trimesh.util.concatenate([walls_mesh, floors_mesh])
+        if floors_mesh is not None
+        else walls_mesh
+    )
+
     job_id = str(uuid.uuid4())
     out_path = os.path.join(OUTPUT_DIR, f"{job_id}.glb")
-    export_glb(mesh, out_path)
+    export_glb(final_mesh, out_path)
 
     return {
         "job_id": job_id,
         "model_url": f"/api/floorplan/model/{job_id}",
         "wall_count": len(contours),
+        "room_count": len(room_polygons),
         "scale_px_to_m": px_to_m,
     }
 

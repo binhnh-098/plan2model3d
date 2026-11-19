@@ -57,7 +57,9 @@ export default function App() {
       }
       const data = await res.json();
       setModelUrl(`${API_BASE}${data.model_url}`);
-      setInfo(`Phat hien ${data.wall_count} mang tuong · Ty le 1px = ${data.scale_px_to_m.toFixed(4)}m`);
+      setInfo(
+        `Phat hien ${data.wall_count} mang tuong, ${data.room_count} phong · Ty le 1px = ${data.scale_px_to_m.toFixed(4)}m`
+      );
     } catch (err: any) {
       setError(err.message || "Co loi xay ra, thu lai sau.");
     } finally {

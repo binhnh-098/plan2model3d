@@ -2,7 +2,6 @@
 import numpy as np
 import trimesh
 from shapely.geometry import Polygon
-from shapely.validation import make_valid
 
 
 def build_walls_mesh(
@@ -40,7 +39,11 @@ def build_walls_mesh(
         try:
             poly = Polygon(exterior_m, interiors_m)
             if not poly.is_valid:
-                poly = make_valid(poly)
+                # buffer(0) la cach chuan de sua polygon tu cat chinh no (vd
+                # tuong qua mong khien bien ngoai va bien lo cham nhau) - cho
+                # ra Polygon/MultiPolygon sach, khac voi make_valid co the
+                # tra ve GeometryCollection lon xon lan ca Point/LineString.
+                poly = poly.buffer(0)
             if poly.is_empty or poly.area <= 0:
                 continue
         except Exception:
@@ -48,7 +51,7 @@ def build_walls_mesh(
 
         geoms = poly.geoms if hasattr(poly, "geoms") else [poly]
         for g in geoms:
-            if g.area <= 1e-6:
+            if g.geom_type != "Polygon" or g.area <= 1e-6:
                 continue
             try:
                 mesh = trimesh.creation.extrude_polygon(g, height=wall_height_m)
@@ -57,12 +60,61 @@ def build_walls_mesh(
                 continue
 
     if not meshes:
-        raise ValueError("Khong tach duoc tuong nao tu anh - thu doi wall_thickness_px")
+        raise ValueError("Khong tach duoc tuong nao tu anh - thu doi dark_threshold")
 
     combined = trimesh.util.concatenate(meshes)
+    combined.visual.face_colors = [210, 210, 215, 255]
+    return combined
+
+
+def build_floors_mesh(
+    room_polygons_px,
+    px_to_m: float,
+    floor_thickness_m: float = 0.08,
+) -> trimesh.Trimesh | None:
+    """Dung san MONG cho tung phong (khong co tran/mai) de co mat phang
+    dat noi that len tren, khong lam kin khong gian ben tren."""
+    meshes = []
+    for pts_px in room_polygons_px:
+        if len(pts_px) < 3:
+            continue
+        pts_m = (pts_px * px_to_m).tolist()
+        try:
+            poly = Polygon(pts_m)
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+            if poly.is_empty or poly.area <= 0:
+                continue
+        except Exception:
+            continue
+
+        geoms = poly.geoms if hasattr(poly, "geoms") else [poly]
+        for g in geoms:
+            if g.geom_type != "Polygon" or g.area <= 1e-6:
+                continue
+            try:
+                floor = trimesh.creation.extrude_polygon(g, height=floor_thickness_m)
+                floor.apply_translation([0, 0, -floor_thickness_m])
+                meshes.append(floor)
+            except Exception:
+                continue
+
+    if not meshes:
+        return None
+    combined = trimesh.util.concatenate(meshes)
+    combined.visual.face_colors = [120, 150, 190, 255]
     return combined
 
 
 def export_glb(mesh: trimesh.Trimesh, out_path: str) -> None:
-    mesh.apply_translation([0, 0, 0])
+    """Xuat GLB.
+
+    extrude_polygon dung chieu cao theo truc Z (quy uoc CAD/trimesh), nhung
+    chuan glTF/three.js coi truc Y la chieu cao. Neu khong xoay truoc khi
+    xuat, moi app doc file GLB dung chuan se hien thi model SAI HUONG (nam
+    ngang thay vi dung len). Xoay -90 do quanh truc X de doi Z(cao)->Y(cao),
+    giu nguyen hinh dang mat bang X/Y nhu anh goc (chi doi huong truc).
+    """
+    rotation = trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0])
+    mesh.apply_transform(rotation)
     mesh.export(out_path, file_type="glb")

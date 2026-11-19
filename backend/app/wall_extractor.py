@@ -57,16 +57,63 @@ def extract_wall_mask(
     return wall_mask
 
 
-def find_wall_contours(wall_mask: np.ndarray, min_area: int = 60):
-    """Tra ve list contour (toa do pixel) cua tung mang tuong, kem hierarchy
-    de phan biet contour ngoai / lo (hole) ben trong."""
-    contours, hierarchy = cv2.findContours(
-        wall_mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
-    )
-    filtered = []
+def find_room_polygons(wall_mask: np.ndarray, min_area: int = 2000):
+    """Tim cac vung PHONG (khong gian rong duoc bao boc kin boi tuong).
+
+    Cach lam: dao nguoc mask (tuong=0, con lai=255), flood-fill tu goc anh
+    de danh dau vung NEN BEN NGOAI nha (khong phai phong), phan con lai la
+    cac phong duoc tuong bao kin - dung lam san (floor) cho tung phong.
+    """
+    inverted = cv2.bitwise_not(wall_mask)
+
+    flood = inverted.copy()
+    h, w = flood.shape
+    fill_mask = np.zeros((h + 2, w + 2), np.uint8)
+    cv2.floodFill(flood, fill_mask, (0, 0), 0)  # loai vung nen ngoai nha
+
+    contours, hierarchy = cv2.findContours(flood, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    rooms = []
     for i, c in enumerate(contours):
+        if hierarchy[0][i][3] != -1:
+            continue  # bo qua lo nho ben trong 1 phong (vd tru cot)
         if cv2.contourArea(c) >= min_area:
             eps = 1.5
             approx = cv2.approxPolyDP(c, eps, True)
-            filtered.append((approx.reshape(-1, 2), hierarchy[0][i]))
+            rooms.append(approx.reshape(-1, 2))
+    return rooms
+
+
+def find_wall_contours(wall_mask: np.ndarray, min_area: int = 60):
+    """Tra ve list contour (toa do pixel) cua tung mang tuong, kem hierarchy
+    da REMAP de phan biet contour ngoai / lo (hole) ben trong.
+
+    QUAN TRONG: cv2.findContours tra ve hierarchy voi chi so CHA/CON la chi
+    so trong mang contours GOC (truoc khi loc theo min_area). Neu chi loc
+    roi giu nguyen gia tri parent goc, no se tro sai sang vi tri khac trong
+    danh sach da loc (hoac tro toi 1 contour da bi loai) -> mat lien ket
+    hole, khien tuong ngoai bi extrude thanh khoi DAC thay vi khung RONG.
+    Phai remap lai chi so sau khi loc.
+    """
+    contours, hierarchy = cv2.findContours(
+        wall_mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE
+    )
+    if hierarchy is None:
+        return []
+
+    kept_original_indices = [
+        i for i, c in enumerate(contours) if cv2.contourArea(c) >= min_area
+    ]
+    old_to_new = {orig: new for new, orig in enumerate(kept_original_indices)}
+
+    filtered = []
+    for orig_idx in kept_original_indices:
+        c = contours[orig_idx]
+        eps = 1.5
+        approx = cv2.approxPolyDP(c, eps, True)
+
+        old_parent = hierarchy[0][orig_idx][3]
+        new_parent = old_to_new.get(old_parent, -1)
+
+        new_hierarchy_row = np.array([-1, -1, -1, new_parent])
+        filtered.append((approx.reshape(-1, 2), new_hierarchy_row))
     return filtered
