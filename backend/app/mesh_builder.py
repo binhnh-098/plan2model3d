@@ -106,6 +106,44 @@ def build_floors_mesh(
     return combined
 
 
+def build_manual_room(
+    length_m: float,
+    width_m: float,
+    wall_height_m: float = 2.8,
+    wall_thickness_m: float = 0.1,
+    floor_thickness_m: float = 0.08,
+) -> trimesh.Trimesh:
+    """Dung 1 phong CHU NHAT tu kich thuoc nguoi dung nhap tay (dai x rong),
+    khong can anh mat bang. Tuong la khung mong bao quanh (co do day tuy
+    chinh), khong co tran/mai de co the dat noi that va xem tu nhieu goc."""
+    outer = Polygon(
+        [
+            (0, 0),
+            (length_m, 0),
+            (length_m, width_m),
+            (0, width_m),
+        ]
+    )
+    inner = Polygon(
+        [
+            (wall_thickness_m, wall_thickness_m),
+            (length_m - wall_thickness_m, wall_thickness_m),
+            (length_m - wall_thickness_m, width_m - wall_thickness_m),
+            (wall_thickness_m, width_m - wall_thickness_m),
+        ]
+    )
+
+    wall_ring = Polygon(outer.exterior.coords, [inner.exterior.coords])
+    walls = trimesh.creation.extrude_polygon(wall_ring, height=wall_height_m)
+    walls.visual.face_colors = [210, 210, 215, 255]
+
+    floor = trimesh.creation.extrude_polygon(inner, height=floor_thickness_m)
+    floor.apply_translation([0, 0, -floor_thickness_m])
+    floor.visual.face_colors = [120, 150, 190, 255]
+
+    return trimesh.util.concatenate([walls, floor])
+
+
 def export_glb(mesh: trimesh.Trimesh, out_path: str) -> None:
     """Xuat GLB.
 

@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 import trimesh
 
-from app.mesh_builder import build_floors_mesh, build_walls_mesh, export_glb
+from app.mesh_builder import build_floors_mesh, build_manual_room, build_walls_mesh, export_glb
 from app.wall_extractor import extract_wall_mask, find_room_polygons, find_wall_contours
 
 app = FastAPI(title="HouseIn - Floor Plan to 3D")
@@ -86,6 +86,35 @@ async def floorplan_to_3d(
         "wall_count": len(contours),
         "room_count": len(room_polygons),
         "scale_px_to_m": px_to_m,
+    }
+
+
+@app.post("/api/room/manual")
+async def create_manual_room(
+    length_m: float = Form(...),
+    width_m: float = Form(...),
+    wall_height_m: float = Form(2.8),
+    wall_thickness_m: float = Form(0.1),
+):
+    if length_m <= 0 or width_m <= 0:
+        raise HTTPException(status_code=422, detail="Chieu dai/rong phai lon hon 0")
+    if wall_thickness_m * 2 >= min(length_m, width_m):
+        raise HTTPException(status_code=422, detail="Do day tuong qua lon so voi kich thuoc phong")
+
+    mesh = build_manual_room(
+        length_m=length_m,
+        width_m=width_m,
+        wall_height_m=wall_height_m,
+        wall_thickness_m=wall_thickness_m,
+    )
+
+    job_id = str(uuid.uuid4())
+    out_path = os.path.join(OUTPUT_DIR, f"{job_id}.glb")
+    export_glb(mesh, out_path)
+
+    return {
+        "job_id": job_id,
+        "model_url": f"/api/floorplan/model/{job_id}",
     }
 
 
