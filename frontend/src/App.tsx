@@ -9,19 +9,19 @@ type Mode = "upload" | "manual";
 export default function App() {
   const [mode, setMode] = useState<Mode>("upload");
 
-  // --- Upload anh ---
+  // --- Upload ảnh ---
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [wallHeight, setWallHeight] = useState(3.0);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Nhap kich thuoc ---
+  // --- Nhập kích thước ---
   const [length, setLength] = useState(4.0);
   const [width, setWidth] = useState(3.0);
   const [manualWallHeight, setManualWallHeight] = useState(2.8);
 
-  // --- Dung chung ---
+  // --- Dùng chung ---
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modelUrl, setModelUrl] = useState<string | null>(null);
@@ -68,15 +68,15 @@ export default function App() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "Co loi xay ra");
+        throw new Error(err.detail || "Có lỗi xảy ra");
       }
       const data = await res.json();
       setModelUrl(`${API_BASE}${data.model_url}`);
       setInfo(
-        `Phat hien ${data.wall_count} mang tuong, ${data.room_count} phong · Ty le 1px = ${data.scale_px_to_m.toFixed(4)}m`
+        `Phát hiện ${data.wall_count} mảng tường, ${data.room_count} phòng · Tỷ lệ 1px = ${data.scale_px_to_m.toFixed(4)}m`
       );
     } catch (err: any) {
-      setError(err.message || "Co loi xay ra, thu lai sau.");
+      setError(err.message || "Có lỗi xảy ra, thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -100,13 +100,13 @@ export default function App() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "Co loi xay ra");
+        throw new Error(err.detail || "Có lỗi xảy ra");
       }
       const data = await res.json();
       setModelUrl(`${API_BASE}${data.model_url}`);
-      setInfo(`Da dung phong ${length}m × ${width}m, cao ${manualWallHeight}m`);
+      setInfo(`Đã dựng phòng ${length}m × ${width}m, cao ${manualWallHeight}m`);
     } catch (err: any) {
-      setError(err.message || "Co loi xay ra, thu lai sau.");
+      setError(err.message || "Có lỗi xảy ra, thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -116,10 +116,10 @@ export default function App() {
     <div className="app-shell">
       <header className="app-header">
         <span className="eyebrow">HouseIn · Beta</span>
-        <h1>Mat bang 2D &rarr; Model 3D</h1>
+        <h1>Mặt bằng 2D &rarr; Model 3D</h1>
         <p>
-          Tai len anh mat bang kien truc hoac tu nhap kich thuoc phong, he thong
-          se dung model 3D mo nap de ban thiet ke noi that.
+          Tải lên ảnh mặt bằng kiến trúc hoặc tự nhập kích thước phòng, hệ thống
+          sẽ dựng model 3D mở nắp để bạn thiết kế nội thất.
         </p>
       </header>
 
@@ -131,14 +131,14 @@ export default function App() {
               className={`mode-tab ${mode === "upload" ? "active" : ""}`}
               onClick={() => switchMode("upload")}
             >
-              Tai anh len
+              Tải ảnh lên
             </button>
             <button
               type="button"
               className={`mode-tab ${mode === "manual" ? "active" : ""}`}
               onClick={() => switchMode("manual")}
             >
-              Nhap kich thuoc
+              Nhập kích thước
             </button>
           </div>
 
@@ -165,7 +165,7 @@ export default function App() {
                     <strong>{file.name}</strong>
                   ) : (
                     <>
-                      <strong>Keo tha anh</strong> hoac bam de chon file
+                      <strong>Kéo thả ảnh</strong> hoặc bấm để chọn file
                     </>
                   )}
                 </div>
@@ -176,7 +176,7 @@ export default function App() {
               )}
 
               <div className="field">
-                <label htmlFor="wallHeight">Chieu cao tuong (met)</label>
+                <label htmlFor="wallHeight">Chiều cao tường (mét)</label>
                 <input
                   id="wallHeight"
                   type="number"
@@ -189,14 +189,14 @@ export default function App() {
 
               <button type="submit" className="submit-btn" disabled={!file || loading}>
                 {loading && <span className="spinner" />}
-                {loading ? "Dang xu ly..." : "Dung model 3D"}
+                {loading ? "Đang xử lý..." : "Dựng model 3D"}
               </button>
             </form>
           ) : (
             <form onSubmit={handleManualSubmit}>
               <div className="field-row">
                 <div className="field">
-                  <label htmlFor="length">Chieu dai (met)</label>
+                  <label htmlFor="length">Chiều dài (mét)</label>
                   <input
                     id="length"
                     type="number"
@@ -207,7 +207,7 @@ export default function App() {
                   />
                 </div>
                 <div className="field">
-                  <label htmlFor="width">Chieu rong (met)</label>
+                  <label htmlFor="width">Chiều rộng (mét)</label>
                   <input
                     id="width"
                     type="number"
@@ -220,7 +220,7 @@ export default function App() {
               </div>
 
               <div className="field">
-                <label htmlFor="manualWallHeight">Chieu cao tuong (met)</label>
+                <label htmlFor="manualWallHeight">Chiều cao tường (mét)</label>
                 <input
                   id="manualWallHeight"
                   type="number"
@@ -248,7 +248,7 @@ export default function App() {
                 disabled={length <= 0 || width <= 0 || loading}
               >
                 {loading && <span className="spinner" />}
-                {loading ? "Dang xu ly..." : "Dung phong 3D"}
+                {loading ? "Đang xử lý..." : "Dựng phòng 3D"}
               </button>
             </form>
           )}
@@ -258,19 +258,19 @@ export default function App() {
         </section>
 
         <section className="panel viewer-panel">
-          <h2>Xem truoc 3D</h2>
+          <h2>Xem trước 3D</h2>
           {modelUrl ? (
             <>
               <div className="viewer-wrapper">
                 <ModelViewer modelUrl={modelUrl} />
               </div>
-              <div className="viewer-hint">Keo chuot de xoay · Cuon de zoom</div>
+              <div className="viewer-hint">Kéo chuột để xoay · Cuộn để zoom</div>
             </>
           ) : (
             <div className="viewer-empty">
               <div className="big-icon">🏠</div>
               <div>
-                {loading ? "Dang dung model, vui long cho..." : "Model 3D se hien o day sau khi xu ly xong"}
+                {loading ? "Đang dựng model, vui lòng chờ..." : "Model 3D sẽ hiện ở đây sau khi xử lý xong"}
               </div>
             </div>
           )}

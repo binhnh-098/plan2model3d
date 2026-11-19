@@ -60,7 +60,7 @@ def build_walls_mesh(
                 continue
 
     if not meshes:
-        raise ValueError("Khong tach duoc tuong nao tu anh - thu doi dark_threshold")
+        raise ValueError("Không tách được tường nào từ ảnh - thử đổi dark_threshold")
 
     combined = trimesh.util.concatenate(meshes)
     combined.visual.face_colors = [210, 210, 215, 255]

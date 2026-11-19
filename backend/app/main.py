@@ -46,12 +46,12 @@ async def floorplan_to_3d(
     np_arr = np.frombuffer(content, np.uint8)
     image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
     if image is None:
-        raise HTTPException(status_code=400, detail="Khong doc duoc file anh")
+        raise HTTPException(status_code=400, detail="Không đọc được file ảnh")
 
     if known_length_px and known_length_m and known_length_px > 0:
         px_to_m = known_length_m / known_length_px
     else:
-        # Mac dinh gia dinh ~100 px = 1m neu khong co thong tin ty le
+        # Mặc định giả định ~100 px = 1m nếu không có thông tin tỷ lệ
         px_to_m = 1.0 / 100.0
 
     wall_mask = extract_wall_mask(image, dark_threshold=dark_threshold, gap_close_px=gap_close_px)
@@ -59,7 +59,7 @@ async def floorplan_to_3d(
     if not contours:
         raise HTTPException(
             status_code=422,
-            detail="Khong phat hien duoc tuong nao trong anh. Thu anh ro net hon hoac chinh dark_threshold.",
+            detail="Không phát hiện được tường nào trong ảnh. Thử ảnh rõ nét hơn hoặc chỉnh dark_threshold.",
         )
 
     try:
@@ -97,9 +97,9 @@ async def create_manual_room(
     wall_thickness_m: float = Form(0.1),
 ):
     if length_m <= 0 or width_m <= 0:
-        raise HTTPException(status_code=422, detail="Chieu dai/rong phai lon hon 0")
+        raise HTTPException(status_code=422, detail="Chiều dài/rộng phải lớn hơn 0")
     if wall_thickness_m * 2 >= min(length_m, width_m):
-        raise HTTPException(status_code=422, detail="Do day tuong qua lon so voi kich thuoc phong")
+        raise HTTPException(status_code=422, detail="Độ dày tường quá lớn so với kích thước phòng")
 
     mesh = build_manual_room(
         length_m=length_m,
@@ -122,5 +122,5 @@ async def create_manual_room(
 def get_model(job_id: str):
     path = os.path.join(OUTPUT_DIR, f"{job_id}.glb")
     if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="Khong tim thay model")
+        raise HTTPException(status_code=404, detail="Không tìm thấy model")
     return FileResponse(path, media_type="model/gltf-binary", filename=f"{job_id}.glb")
