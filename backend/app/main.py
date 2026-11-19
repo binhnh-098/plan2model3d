@@ -34,7 +34,8 @@ def health():
 @app.post("/api/floorplan/to-3d")
 async def floorplan_to_3d(
     file: UploadFile = File(...),
-    wall_thickness_px: int = Form(6),
+    dark_threshold: int = Form(80),
+    gap_close_px: int = Form(25),
     wall_height_m: float = Form(3.0),
     known_length_px: float = Form(None),
     known_length_m: float = Form(None),
@@ -51,12 +52,12 @@ async def floorplan_to_3d(
         # Mac dinh gia dinh ~100 px = 1m neu khong co thong tin ty le
         px_to_m = 1.0 / 100.0
 
-    wall_mask = extract_wall_mask(image, wall_thickness_px=wall_thickness_px)
+    wall_mask = extract_wall_mask(image, dark_threshold=dark_threshold, gap_close_px=gap_close_px)
     contours = find_wall_contours(wall_mask)
     if not contours:
         raise HTTPException(
             status_code=422,
-            detail="Khong phat hien duoc tuong nao trong anh. Thu anh ro net hon hoac chinh wall_thickness_px.",
+            detail="Khong phat hien duoc tuong nao trong anh. Thu anh ro net hon hoac chinh dark_threshold.",
         )
 
     try:
