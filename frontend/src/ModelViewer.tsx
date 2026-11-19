@@ -16,7 +16,7 @@ export default function ModelViewer({ modelUrl }: Props) {
     const height = container.clientHeight;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f0f0);
+    scene.background = new THREE.Color(0x121826);
 
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
     camera.position.set(8, 8, 8);
@@ -34,7 +34,7 @@ export default function ModelViewer({ modelUrl }: Props) {
     dirLight.position.set(10, 20, 10);
     scene.add(dirLight);
 
-    const grid = new THREE.GridHelper(40, 40);
+    const grid = new THREE.GridHelper(40, 40, 0x2a3650, 0x1c2438);
     scene.add(grid);
 
     const loader = new GLTFLoader();
@@ -72,5 +72,5 @@ export default function ModelViewer({ modelUrl }: Props) {
     };
   }, [modelUrl]);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "500px" }} />;
+  return <div ref={containerRef} style={{ width: "100%", height: "100%", minHeight: 460 }} />;
 }
