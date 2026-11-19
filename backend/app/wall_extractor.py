@@ -17,7 +17,7 @@ def extract_wall_mask(
     image_bgr: np.ndarray,
     dark_threshold: int = 80,
     min_component_area: int = 15,
-    gap_close_px: int = 25,
+    gap_close_px: int = 40,
 ) -> np.ndarray:
     """Tra ve anh nhi phan (0/255): pixel 255 = thuoc tuong.
 
@@ -83,9 +83,14 @@ def find_room_polygons(wall_mask: np.ndarray, min_area: int = 2000):
     return rooms
 
 
-def find_wall_contours(wall_mask: np.ndarray, min_area: int = 60):
+def find_wall_contours(wall_mask: np.ndarray, min_area: int = 500):
     """Tra ve list contour (toa do pixel) cua tung mang tuong, kem hierarchy
     da REMAP de phan biet contour ngoai / lo (hole) ben trong.
+
+    min_area=500 (thay vi mot so nho nhu 60) de loai cac manh nhieu con sot
+    (vd ky hieu mui ten chi huong, dau cat tiet dien...) KHONG phai la tuong
+    that - neu khong chung se noi thanh cac "manh tuong" roi, lo lung, khong
+    khop voi tong the ngoi nha khi dung 3D.
 
     QUAN TRONG: cv2.findContours tra ve hierarchy voi chi so CHA/CON la chi
     so trong mang contours GOC (truoc khi loc theo min_area). Neu chi loc

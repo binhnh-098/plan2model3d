@@ -37,7 +37,7 @@ def health():
 async def floorplan_to_3d(
     file: UploadFile = File(...),
     dark_threshold: int = Form(80),
-    gap_close_px: int = Form(25),
+    gap_close_px: int = Form(40),
     wall_height_m: float = Form(3.0),
     known_length_px: float = Form(None),
     known_length_m: float = Form(None),
