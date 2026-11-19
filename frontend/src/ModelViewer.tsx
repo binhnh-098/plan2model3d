@@ -303,6 +303,7 @@ export default function ModelViewer({ modelUrl }: Props) {
       };
       controls.enabled = false;
       renderer.domElement.style.cursor = "grabbing";
+      setHint("Kéo để di chuyển · Lăn chuột để xoay");
     };
 
     const handlePointerUp = () => {
@@ -310,7 +311,17 @@ export default function ModelViewer({ modelUrl }: Props) {
         dragStateRef.current = null;
         controls.enabled = true;
         renderer.domElement.style.cursor = "auto";
+        setHint(null);
       }
+    };
+
+    // Khi dang keo (giu chuot trai tren vat the), lan chuot se XOAY vat do
+    // quanh truc dung thay vi zoom camera - cho phep xoay huong do vat
+    // ngay trong luc dang dat vi tri.
+    const handleWheel = (e: WheelEvent) => {
+      if (!dragStateRef.current) return;
+      e.preventDefault();
+      dragStateRef.current.object.rotation.y += e.deltaY * 0.002;
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -324,6 +335,7 @@ export default function ModelViewer({ modelUrl }: Props) {
     renderer.domElement.addEventListener("click", handleClick);
     renderer.domElement.addEventListener("pointermove", handlePointerMove);
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+    renderer.domElement.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("keydown", handleKeyDown);
 
@@ -370,6 +382,7 @@ export default function ModelViewer({ modelUrl }: Props) {
       renderer.domElement.removeEventListener("click", handleClick);
       renderer.domElement.removeEventListener("pointermove", handlePointerMove);
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      renderer.domElement.removeEventListener("wheel", handleWheel);
       renderer.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
